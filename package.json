@@ -1,0 +1,48 @@
+{
+  "name": "linklens",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --webpack --hostname 127.0.0.1",
+    "build": "next build --webpack",
+    "start": "next start --hostname 127.0.0.1",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "dev:api": "tsx watch --env-file-if-exists=.env.api server/index.ts",
+    "start:api": "tsx --env-file-if-exists=.env.api server/index.ts",
+    "test:api": "vitest run tests/api.test.ts",
+    "db:setup": "node scripts/setup-db.mjs",
+    "db:up": "docker compose up -d --wait db",
+    "db:stop": "docker compose stop db",
+    "db:migrate": "tsx --env-file-if-exists=.env.api server/db/migrate-cli.ts",
+    "test:db": "tsx --env-file-if-exists=.env.api node_modules/vitest/vitest.mjs run tests/db.test.ts"
+  },
+  "dependencies": {
+    "@fastify/cors": "^11.4.0",
+    "@tailwindcss/postcss": "latest",
+    "@types/punycode": "^2.1.4",
+    "@zxing/library": "latest",
+    "fastify": "^5.12.8",
+    "lucide-react": "latest",
+    "next": "latest",
+    "pg": "^8.23.1",
+    "punycode": "^2.3.1",
+    "react": "latest",
+    "react-dom": "latest",
+    "tailwindcss": "latest",
+    "tldts": "latest"
+  },
+  "devDependencies": {
+    "@playwright/test": "latest",
+    "@types/node": "latest",
+    "@types/pg": "^8.23.1",
+    "@types/qrcode": "latest",
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "qrcode": "latest",
+    "tsx": "^4.23.15",
+    "typescript": "latest",
+    "vitest": "latest"
+  }
+}

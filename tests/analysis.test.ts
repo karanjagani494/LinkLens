@@ -1,0 +1,13 @@
+import {describe,it,expect,vi} from 'vitest';
+import {analyse,validateRequest} from '../server/analysis/analyse';
+const input=(url:string)=>({url,inputKind:'url' as const,inspectRedirects:false,checkReputation:false});
+describe('server structural analysis',()=>{
+ it.each(['https://paypal.com.attacker.co.uk/','https://a.paypal.com.attacker.com/'])('detects misplaced official domain in %s',url=>{const r=analyse(input(url));expect(r.verdict).toBe('suspicious');expect(r.findings.map(f=>f.id)).toContain('DOM-001')});
+ it('does not flag official domains or brand text in paths',()=>{for(const url of ['https://checkout.paypal.com/pay','https://example.com/paypal.com'])expect(analyse(input(url)).findings).toEqual([])});
+ it('detects supported substitution and single edit without treating informational evidence as risk',()=>{expect(analyse(input('https://paypa1.com')).findings.map(f=>f.id)).toContain('DOM-002');expect(analyse(input('https://paypall.com')).verdict).toBe('suspicious');expect(analyse(input('https://xn--r8jz45g.jp')).verdict).toBe('insufficient_evidence');expect(analyse(input('https://192.0.2.1')).findings.map(f=>f.id)).toContain('URL-002')});
+ it('keeps coverage partial and skipped/unavailable checks explicit',()=>{const r=analyse({...input('https://example.com'),inspectRedirects:true,checkReputation:true});expect(r.verdict).toBe('insufficient_evidence');expect(r.coverage).toBe('partial');expect(r.checks.slice(2,4).map(c=>c.status)).toEqual(['unavailable','unavailable']);expect(analyse(input('http://example.com')).verdict).toBe('suspicious')});
+ it('uses real PSL boundaries including private suffixes, not demo overrides',()=>{expect(analyse(input('https://a.store.co.uk')).domain.registrableDomain).toBe('store.co.uk');expect(analyse(input('https://user.github.io')).domain.registrableDomain).toBe('user.github.io');expect(analyse(input('https://a.example.test')).domain.registrableDomain).toBeNull()});
+ it('persists no path/query/fragment and makes no target requests',()=>{const fetch=vi.spyOn(globalThis,'fetch');try{const r=analyse(input('https://example.com/SECRET?token=SENTINEL#FRAGMENT'));expect(JSON.stringify(r)).not.toMatch(/SECRET|SENTINEL|FRAGMENT/);expect(fetch).not.toHaveBeenCalled()}finally{fetch.mockRestore()}});
+ it.each(['example.com','https://user:pass@example.com','https://127.1','https://%65xample.com','https://-bad.com','https://example.com/\\test'])('rejects invalid input %s',url=>expect(validateRequest(input(url))).toBe(false));
+ it('requires boolean consent and rejects extra fields',()=>{expect(validateRequest({...input('https://example.com'),inspectRedirects:'true'})).toBe(false);expect(validateRequest({...input('https://example.com'),target:'hidden'})).toBe(false)});
+});

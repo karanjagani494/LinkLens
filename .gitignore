@@ -1,0 +1,13 @@
+node_modules/
+.next/
+.env*
+!.env.example
+test-results/
+playwright-report/
+*.tsbuildinfo
+!.env.api.example
+# Generated screenshots and local artifacts
+tests/*.png
+coverage/
+*.log
+.DS_Store
