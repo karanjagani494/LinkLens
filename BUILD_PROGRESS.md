@@ -8,10 +8,10 @@ Work proceeds one stage at a time. A completed stage does not imply the remainin
 | 1 | Separate API, health check and visible connection status | ✅ Done | Nothing |
 | 2 | Hosted PostgreSQL, private report capabilities, expiry and deletion | ✅ Done | Neon configured in server-side DATABASE_URL |
 | 3 | Real URL validation, domain rules and report generation | ✅ Done | Nothing |
-| 4 | Redis queue, worker, rate limits and recovery | ⬜ Pending | Local Redis or a Redis connection URL |
-| 5 | Google Web Risk reputation checks with consent | ⬜ Pending | Server-side Google Web Risk API access/key |
-| 6 | Isolated redirect inspection and network safety tests | ⬜ Pending | Hosting capable of enforced outbound network isolation |
-| 7 | Production deployment and operational checks | ⬜ Pending | Hosting/domain choices and deployment secrets |
+| 4 | Redis queue, worker, rate limits and recovery | ✅ Code and integration tests; hosted connection pending | TLS Redis URL |
+| 5 | Google Web Risk reputation checks with consent | 🟡 Adapter and mocked tests complete; live activation pending | Server-side Google key and explicit enable flag |
+| 6 | Isolated redirect inspection and network safety tests | 🟡 Service and deterministic tests complete; kept off pending isolation proof | Verified egress isolation |
+| 7 | Production deployment and operational checks | ⏸ Deferred by user | No hosting now |
 | Optional | AI explanations | ⬜ Not required for launch | Provider API key only if requested |
 
 Login and Google OAuth are outside the anonymous MVP. Report access will use private per-report capabilities. Never paste secrets into frontend code or commit them; setup instructions will identify a local environment file when needed.
@@ -55,3 +55,10 @@ Temporary API contract: synchronous structural analysis returns HTTP 201 with {i
 Verification: 49 unit/API checks passed, five Neon integration tests passed. Browser verification covers the real scan, reload, redacted export and deletion. Run it with both API and HTTP-mode frontend configured: `$env:LINKLENS_REAL_TESTS="1"; npm run test:e2e -- --grep "real structural scan"`. Original fixture browser journeys require mock mode.
 
 Final step-3 checks: real HTTP-mode browser journey passed (including reload, redacted JSON export and deletion); production frontend build passed. Startup form controls now wait for client interactivity to prevent dropped pre-hydration input. Hosted backend deployment is still pending.
+
+
+## Completion work — local application, hosting deferred
+
+Added BullMQ queue/worker, atomic Redis admission, one-time transient payload claims, queue state migration, cancellation/recovery, provider-call budgets, explicit provider flags, capability discovery in the UI, Google Web Risk adapter, isolated pinned-address header transport, expanded tests, a synthetic offline evaluation and GitHub Actions checks.
+
+Verified: five Redis/Neon integration tests, five PostgreSQL access tests, real queued browser submission/reload/export/deletion, 92 unit/API/provider/network checks, and a 12-case synthetic conformance corpus. Hosted Redis TLS connection and real Google credentials still need operator configuration. Redirect inspection stays disabled until independent egress isolation is proven. No hosting or deployment was performed. See docs/SERVER_SETUP.md for instructions and limitations.

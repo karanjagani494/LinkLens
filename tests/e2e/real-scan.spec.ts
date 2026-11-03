@@ -4,7 +4,9 @@ test('real structural scan saves a private redacted report in Neon',async({page}
  const targetRequests:string[]=[];page.on('request',r=>{if(new URL(r.url()).hostname==='paypal.com.attacker.co.uk')targetRequests.push(r.url())});
  await page.goto('/');await expect(page.getByRole('checkbox').nth(0)).toBeDisabled();await expect(page.getByRole('checkbox').nth(1)).toBeDisabled();
  await page.getByLabel('Payment link or website URL').fill('https://paypal.com.attacker.co.uk/SECRET?token=SENTINEL#PRIVATE');
+ const accepted=page.waitForResponse(r=>r.url().endsWith('/api/scans')&&r.request().method()==='POST');
  await page.getByRole('button',{name:'Analyse link',exact:true}).click();
+ const creation=await accepted;expect(creation.status()).toBe(process.env.LINKLENS_EXPECT_QUEUE==='1'?202:201);
  await expect(page.getByRole('heading',{name:'Suspicious',exact:true})).toBeVisible({timeout:15000});
  await expect(page.getByText('DOM-001',{exact:true})).toBeVisible();await expect(page.getByText('attacker.co.uk',{exact:true}).first()).toBeVisible();
  await expect(page.getByText('Demo mode',{exact:true})).toHaveCount(0);

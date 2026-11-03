@@ -1,6 +1,6 @@
 # LinkLens architecture
 
-Decision status: proposed target architecture; incremental implementation authorised. Delivery status: frontend demo implemented; separate Fastify API foundation implemented. Persistence, processing and external integrations remain unimplemented.
+Decision status: proposed target architecture; incremental implementation authorised. Delivery status: frontend demo implemented; separate Fastify API foundation implemented. Hosted persistence and structural analysis are implemented; queue/worker, optional provider adapters and isolated inspection code are implemented with configuration and release gates described below.
 
 ## Structure and ownership
 
@@ -81,3 +81,14 @@ GET and DELETE report routes use Bearer capabilities, constant-time digest compa
 server/analysis/analyse.ts owns server validation and deterministic versioned rules; brands.json defines the initial ten-brand catalogue and supported ASCII substitutions. POST evaluates only URL text, redacts before persistence and returns a completed receipt (201). The existing typed frontend HTTP adapter now accepts completed receipts. This intentionally differs from the target queued 202 contract until the Redis worker stage. Every structural-only report has partial coverage; unavailable providers never appear passed. No target networking, external reputation request or AI request exists. The frontend disables unavailable consent options in HTTP mode.
 
 Database schema is unchanged; reports remain JSON snapshots in scan. Exact input URL is scoped to the request and analyser memory only, never inserted in scan or logged. Rate limits/global concurrency, queue processing, provider integration, production egress isolation and a reviewed external evaluation corpus are still missing; the current loopback API is not ready for public deployment.
+
+
+## Queue and optional-service implementation
+
+Migration 002 adds authoritative queued/running/completed/failed state and update timestamps. The local Fastify process starts a logical BullMQ worker when Redis is configured; the worker can be split into its own deployment later. BullMQ enforces global concurrency four; atomic Redis admission bounds submissions and active jobs. Queue messages contain IDs only. Exact URLs live in 300-second Redis payload keys and are removed with GETDEL on claim. Redis TLS is required outside loopback. Provider restore/history retention remains an external privacy prerequisite.
+
+POST now returns 202/queued in queue mode; direct 201/completed mode is a non-production development fallback only. Duplicate deliveries cannot claim a running/completed scan, external effects are never automatically retried, a 30-second worker deadline applies, and a sweeper fails stale work after 45 seconds. State updates never upsert reports. Deletion is atomic with a cancellation tombstone and Redis payload/job cancellation is best effort. Admission hashes client identifiers, and only explicit trusted proxy CIDRs may affect client IP. Provider budgets are shared Redis counters.
+
+Google Web Risk calls use the fixed official lookup origin, header authentication, a three-second shared budget and at most six observed URL lookups; they require consent and an explicit enable flag. The distinct inspection service implements per-hop DNS classification, pinned sockets, peer verification and headers-only bounded redirects. Both services feed deterministic verdicts and template explanations. Inspection requires an additional network-isolation confirmation flag; the flag itself is NOT proof. No deployment or independent firewall verification is complete. AI remains off.
+
+The offline synthetic-policy manifest, deterministic unit/provider/network tests, ephemeral Redis/Neon integration tests and queued browser journey provide implementation evidence; they do not establish real-world threat-detection quality or live provider credentials. Hosting is explicitly deferred by the user.

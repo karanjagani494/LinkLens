@@ -12,6 +12,7 @@ Evidence you can read. Domain boundaries you can understand. Limitations you can
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=flat-square&logo=postgresql&logoColor=white)
 ![Neon](https://img.shields.io/badge/Hosted_on-Neon-3A8066?style=flat-square)
 ![Status](https://img.shields.io/badge/Status-In_development-ED650F?style=flat-square)
+![Checks](https://github.com/karanjagani494/LinkLens/actions/workflows/checks.yml/badge.svg)
 
 [Features](#-what-linklens-does) · [Quick start](#-quick-start) · [Progress](#-build-progress) · [Architecture](ARCHITECTURE.md) · [Specification](docs/linklens-mvp/spec.md)
 
@@ -30,7 +31,7 @@ https://paypal.com.account-review.example/...
 
 LinkLens helps you inspect URL structure and distinguish observable indicators from assumptions. It explains each finding, its evidence, and what it does **not** prove.
 
-> **Current scope:** real structural URL analysis with private reports stored in hosted PostgreSQL. Redirect inspection and external reputation checks are not implemented yet. LinkLens does not verify merchants, approve payments, or guarantee that a link is safe.
+> **Current scope:** real structural URL analysis with private reports stored in hosted PostgreSQL. The queue, consent-based reputation adapter and isolated redirect service are implemented. External checks require server credentials and enable flags; redirect inspection additionally requires independently verified network isolation. LinkLens does not verify merchants, approve payments, or guarantee that a link is safe.
 
 ## ✨ What LinkLens does
 
@@ -51,7 +52,7 @@ LinkLens helps you inspect URL structure and distinguish observable indicators f
 - **No indicators found** — the required checks completed without a risk indicator; this verdict is available in complete-coverage demo fixtures.
 - **Insufficient evidence** — the available checks do not support a complete assessment.
 
-**Coverage is separate from the verdict.** Current real reports always have partial coverage because redirect and reputation checks are unavailable. A clean-looking URL alone never becomes a complete assessment.
+**Coverage is separate from the verdict.** Structural-only reports have partial coverage. Complete coverage requires all domain/structural checks and explicitly opted-in redirect and reputation checks to complete. A clean-looking URL alone never becomes a complete assessment.
 
 ## 🛠️ Tech stack
 
@@ -60,6 +61,8 @@ LinkLens helps you inspect URL structure and distinguish observable indicators f
 | Interface | Next.js App Router, React, TypeScript, Tailwind CSS, Lucide |
 | API | Fastify, explicit-origin CORS, PostgreSQL driver |
 | Database | Hosted PostgreSQL on Neon |
+| Jobs and limits | BullMQ, Redis, atomic admission counters |
+| Optional services | Google Web Risk lookup; isolated pinned-address HTTP header inspector |
 | Domain parsing | `tldts`, including the Public Suffix List's private section |
 | QR decoding | Bundled ZXing worker with a three-second decode limit |
 | Checks | Vitest and Playwright Chromium |
@@ -97,13 +100,14 @@ DATABASE_URL=postgresql://USER:PASSWORD@HOST/DATABASE?sslmode=verify-full
 
 **Keep `.env.local` and `.env.api` private.** Database credentials belong on the backend, never in `NEXT_PUBLIC_*` variables. Use your provider's actual TLS connection settings.
 
-### 2. Apply the database schema
+### 2. Prepare the server and database
 
 ```bash
+npm run setup:server
 npm run db:migrate
 ```
 
-Skip this command in demo mode. Migrations are versioned and use a transaction and advisory lock.
+Skip backend setup in demo mode. Migrations are versioned and use a transaction and advisory lock. For queue mode, add a TLS `REDIS_URL` to `.env.api`; the API starts its worker and returns queued scan receipts. Without Redis, only non-production direct structural analysis is available. Follow [the server setup guide](docs/SERVER_SETUP.md) for Redis, Google credentials and inspection isolation.
 
 ### 3. Start the app
 
@@ -130,10 +134,10 @@ Restart Next.js after changing frontend environment variables. In demo mode, the
 | Separate API and connection-status page | ✅ |
 | Hosted PostgreSQL, report capabilities, expiry and deletion | ✅ |
 | Real URL validation, structural rules and saved reports | ✅ |
-| Redis queue, worker, rate limits and recovery | ⬜ |
-| Consent-based Google Web Risk integration | ⬜ |
-| Isolated redirect inspection and network-safety verification | ⬜ |
-| Production hosting and operational release checks | ⬜ |
+| Redis queue, worker, rate limits and recovery | ✅ Implemented and integration-tested; hosted configuration required |
+| Consent-based Google Web Risk integration | 🟡 Adapter tested; live key and enable flag required |
+| Isolated redirect inspection and network-safety verification | 🟡 Service tested; independent egress isolation remains a release gate |
+| Production hosting and operational release checks | ⏸ Deferred |
 
 See [the delivery tracker](BUILD_PROGRESS.md) for implementation details. The database is hosted; the complete application is **not deployed for public use yet**.
 
@@ -144,6 +148,7 @@ npm run typecheck
 npm test
 npm run test:api
 npm run test:db
+npm run evaluate
 npm run build
 ```
 
@@ -172,23 +177,23 @@ $env:LINKLENS_API_TESTS="1"
 npm run test:e2e -- --grep "backend foundation"
 ```
 
-The original demo scenario journeys require mock mode. Playwright starts the frontend when necessary or reuses an existing development server.
+The original demo scenario journeys require mock mode. Playwright uses port 3100 and a separate `.next-e2e` directory. Add that origin to the API allowlist. For a queued backend also set `LINKLENS_EXPECT_QUEUE=1`; the direct development backend returns 201 instead of 202.
 
 </details>
 
-**Last verified implementation:** 49 unit/API checks, five Neon integration tests, the real scan browser journey, TypeScript and the production frontend build passed. These results describe synthetic software checks—not measured real-world phishing detection accuracy or an external security audit.
+**Last verified implementation:** 92 unit/API/provider/network checks, five Neon integration tests, five temporary-Redis/Neon queue integration tests, the real queued browser journey, TypeScript and the production build passed. A 12-case reserved-domain policy corpus also matched its expected verdicts. Hosted Redis and live Google credentials are verified separately during configuration. These results describe synthetic software checks—not measured real-world phishing detection accuracy or an external security audit.
 
 ## 🔒 Privacy boundaries
 
 - Submitted URLs and evidence render as inert, escaped text. No target previews, favicons or target hyperlinks.
 - QR images stay in the browser; only the selected decoded URL is submitted.
-- The current real analyser makes **no requests to submitted destinations or external reputation/AI providers**.
+- Structural analysis makes no target requests. Google lookups require explicit consent and enablement; target inspection runs only in the separate gated network service. AI remains disabled.
 - Stored URL displays redact paths, queries and fragments. Reports require capability access and expire after 24 hours.
 - Capability digests are stored server-side. Browser capabilities use session storage; explicitly copied private links carry them in the URL fragment.
 - Anyone possessing a private report link can access the report until expiry or deletion. There are no user accounts in the anonymous MVP.
 - Provider backups/history may retain data beyond application deletion. Retention must be reviewed before sensitive production use.
 
-Dense or overlapping QR images may need cropping. Domain similarity is heuristic, the ten-brand catalogue is illustrative, and reputation/redirect coverage is currently missing.
+Dense or overlapping QR images may need cropping. Domain similarity is heuristic and the ten-brand catalogue is illustrative. Skipped, blocked and unavailable checks remain visible and reduce coverage.
 
 ## 🧭 Project map
 
@@ -197,6 +202,9 @@ app/                  Next.js pages and global styling
 src/features/         Scan form, progress and report interface
 src/lib/              Shared types, validation, adapters and local QR decoding
 server/analysis/      Structural rules and versioned brand catalogue
+server/jobs/          Queue, worker, atomic rate limits and recovery
+server/providers/     Consent-aware reputation and inspection pipeline
+server/inspection/    Isolated header transport and network policy
 server/db/            PostgreSQL storage and migrations
 server/app.ts         Fastify API
 server/index.ts       API startup and cleanup
@@ -205,7 +213,7 @@ tests/                Unit, integration and browser checks
 docs/                 Specification and project assets
 ```
 
-Read [REQUIREMENTS.md](REQUIREMENTS.md), [ARCHITECTURE.md](ARCHITECTURE.md), and [the MVP specification](docs/linklens-mvp/spec.md) for the intended system. Queue processing, rate limits, secure outbound networking and deployment validation remain release prerequisites.
+Read [REQUIREMENTS.md](REQUIREMENTS.md), [ARCHITECTURE.md](ARCHITECTURE.md), and [the MVP specification](docs/linklens-mvp/spec.md) for the intended system. Provider configuration, independent outbound network isolation, provider retention review and deployment validation remain release prerequisites. See [SERVER_SETUP.md](docs/SERVER_SETUP.md) for instructions. Hosting is deferred.
 
 ---
 

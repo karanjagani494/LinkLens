@@ -6,6 +6,7 @@ import { ArrowLeft, Check, Circle, LoaderCircle, RefreshCw } from 'lucide-react'
 type Health = { service: string; status: string; stage: string; capabilities: Record<string, boolean> };
 export default function StatusPage() {
   const [state, setState] = useState<'idle'|'checking'|'online'|'offline'>('idle');
+  const [queue,setQueue]=useState('Not checked');
   const [database, setDatabase] = useState('not checked');
   const [health, setHealth] = useState<Health|null>(null);
   const controller = useRef<AbortController|null>(null);
@@ -14,7 +15,7 @@ export default function StatusPage() {
     controller.current?.abort();
     const current = new AbortController(); controller.current = current;
     const timer = setTimeout(() => current.abort(), 5000);
-    setState('checking'); setHealth(null); setDatabase('checking');
+    setState('checking'); setHealth(null); setDatabase('checking');setQueue('Checking');
     try {
       const base = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:4000';
       const response = await fetch(`${base}/api/health`, { signal: current.signal, cache: 'no-store', referrerPolicy: 'no-referrer' });
@@ -24,7 +25,8 @@ export default function StatusPage() {
       const readiness = await fetch(`${base}/api/ready`, { signal: current.signal, cache: 'no-store', referrerPolicy: 'no-referrer' });
       const ready = await readiness.json();
       if (controller.current !== current) return;
-      setDatabase(readiness.ok && ready.database === 'connected' ? 'connected' : 'unavailable');
+      setDatabase(ready.database === 'connected' ? 'connected' : 'unavailable');
+      setQueue(ready.queue==='connected'?'Connected':ready.queue==='not_configured'?'Not configured — direct structural analysis only':'Unavailable');
       setHealth(result); setState('online');
     } catch { if (controller.current === current) setState('offline'); }
     finally { clearTimeout(timer); }
@@ -32,12 +34,12 @@ export default function StatusPage() {
   return <main className="shell" style={{maxWidth:760,paddingBlock:45}}>
     <Link href="/" className="footer-brand"><ArrowLeft size={16}/> Back to LinkLens</Link>
     <section className="panel" style={{marginTop:30,padding:30}}>
-      <span className="eyebrow">BUILD PROGRESS · STEP 3</span>
+      <span className="eyebrow">BUILD PROGRESS · BACKEND</span>
       <h1 style={{fontSize:36,fontWeight:800,letterSpacing:-1,margin:'16px 0'}}>Backend connection</h1>
-      <p className="muted">Check that the separate API is running. Structural analysis is available when the API and database are ready. Redirect and reputation checks are not enabled.</p>
+      <p className="muted">Check that the separate API is running. Structural analysis is available when the API and database are ready. Optional checks appear only when enabled and configured on the server.</p>
       <button className="primary" onClick={check} disabled={state==='checking'}>{state==='checking'?<LoaderCircle size={17} className="spin"/>:<RefreshCw size={17}/>} {state==='checking'?'Checking…':'Check API connection'}</button>
       <div role="status" style={{marginTop:26}}>
-        {state==='online'&&<><p><Check size={17} style={{display:'inline',marginRight:8}}/>API connected · {health?.stage}</p><p>Database: {database}. Check the capability list below for available analysis.</p></>}
+        {state==='online'&&<><p><Check size={17} style={{display:'inline',marginRight:8}}/>API connected · {health?.stage}</p><p>Database: {database}. Queue: {queue}.</p></>}
         {state==='offline'&&<p className="error">API not reachable. Start it with <code>npm run dev:api</code> in a separate terminal, then retry. If it is running, check the API URL and allowed frontend origins.</p>}
         {state==='idle'&&<p className="muted">No request sent yet. No credentials needed for this step.</p>}
       </div>

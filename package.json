@@ -16,14 +16,21 @@
     "db:up": "docker compose up -d --wait db",
     "db:stop": "docker compose stop db",
     "db:migrate": "tsx --env-file-if-exists=.env.api server/db/migrate-cli.ts",
-    "test:db": "tsx --env-file-if-exists=.env.api node_modules/vitest/vitest.mjs run tests/db.test.ts"
+    "test:db": "tsx --env-file-if-exists=.env.api node_modules/vitest/vitest.mjs run tests/db.test.ts",
+    "start:inspection": "tsx --env-file-if-exists=.env.api server/inspection/index.ts",
+    "test:queue": "tsx --env-file-if-exists=.env.api node_modules/vitest/vitest.mjs run tests/queue.test.ts",
+    "setup:server": "node scripts/setup-server.mjs",
+    "evaluate": "tsx scripts/evaluate.ts"
   },
   "dependencies": {
     "@fastify/cors": "^11.4.0",
     "@tailwindcss/postcss": "latest",
     "@types/punycode": "^2.1.4",
     "@zxing/library": "latest",
+    "bullmq": "^6.5.4",
     "fastify": "^5.12.8",
+    "ioredis": "^6.0.0",
+    "ipaddr.js": "^2.5.0",
     "lucide-react": "latest",
     "next": "latest",
     "pg": "^8.23.1",

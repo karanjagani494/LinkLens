@@ -11,3 +11,4 @@ tests/*.png
 coverage/
 *.log
 .DS_Store
+.next-e2e/

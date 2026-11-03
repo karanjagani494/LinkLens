@@ -38,6 +38,8 @@ export default function LinkLens({
 }: {
   reportPage?: boolean;
 }) {
+  const [capabilities,setCapabilities]=useState({redirects:false,reputation:false});
+  useEffect(()=>{if(mockMode)return;const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),4000);fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL||''}/api/health`,{signal:controller.signal,cache:'no-store',referrerPolicy:'no-referrer'}).then(r=>r.ok?r.json():Promise.reject()).then(data=>{if(!controller.signal.aborted)setCapabilities({redirects:data.capabilities?.redirects===true,reputation:data.capabilities?.reputation===true})}).catch(()=>{}).finally(()=>clearTimeout(timer));return()=>{controller.abort();clearTimeout(timer)}},[]);
   const [interactive, setInteractive] = useState(false);
   useEffect(() => setInteractive(true), []);
   const [tab, setTab] = useState<"url" | "qr">("url"),
@@ -321,7 +323,7 @@ export default function LinkLens({
           
         </div>
       )}
-      {!mockMode && <div className="demo-banner"><Shield size={13}/><strong>URL structure analysis</strong><span>· No target visits or external provider requests.</span></div>}
+      {!mockMode && <div className="demo-banner"><Shield size={13}/><strong>Link analysis</strong><span>· Only the optional checks you select are performed.</span></div>}
       <main className="shell">
         <div className="breadcrumb">
           <Shield size={13} /> WORKSPACE <ChevronRight size={12} />
@@ -502,14 +504,14 @@ export default function LinkLens({
                     <label className="consent">
                       <input
                         type="checkbox"
-                        disabled={!mockMode}
+                        disabled={!mockMode&&!capabilities.redirects}
                         checked={inspect}
                         onChange={(e) => setInspect(e.target.checked)}
                       />
                       <span>
                         <strong>Visit this link to inspect redirects</strong>
                         <small>
-                          {mockMode ? 'Observe where the link leads. Visiting may trigger activity.' : 'Not available yet. This link will not be visited.'}
+                          {mockMode || capabilities.redirects ? 'Observe where the link leads. Visiting may trigger activity.' : 'Unavailable on this server. This link will not be visited.'}
                         </small>
                       </span>
                       <Globe size={18} />
@@ -517,7 +519,7 @@ export default function LinkLens({
                     <label className="consent">
                       <input
                         type="checkbox"
-                        disabled={!mockMode}
+                        disabled={!mockMode&&!capabilities.reputation}
                         checked={reputation}
                         onChange={(e) => setReputation(e.target.checked)}
                       />
@@ -527,7 +529,7 @@ export default function LinkLens({
                           checking
                         </strong>
                         <small>
-                          {mockMode ? 'Check for known threats using an external provider.' : 'Not available yet. No URL is sent to Google.'}
+                          {mockMode || capabilities.reputation ? 'Check for known threats using an external provider.' : 'Unavailable on this server. No URL is sent to Google.'}
                         </small>
                       </span>
                       <ShieldCheck size={18} />
@@ -845,7 +847,7 @@ export default function LinkLens({
                       ) : (
                         report.findings.map((f) => (
                           <article
-                            key={f.id}
+                            key={`${f.id}:${f.observed}`}
                             className={`finding ${f.severity}`}
                           >
                             <div className="finding-top">

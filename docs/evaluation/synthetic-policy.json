@@ -1,0 +1,133 @@
+{
+  "corpus": "synthetic-policy-v1",
+  "corpusSha256": "c33c276fb83d259fdb452949fd4ae2768f34ee033a7ce47907fc6eb4529e7334",
+  "scope": "Synthetic structural-policy conformance only. Not real-world phishing detection accuracy.",
+  "provenance": "Hand-authored reserved-domain URL fixtures. Expected labels describe policy indicators, not real-world fraud or merchant legitimacy. No URLs are visited.",
+  "limitations": [
+    "No real-world labelled corpus or temporal holdout.",
+    "No training or fitting is performed; this is a frozen-rule conformance check.",
+    "Lookalike edit-distance cases are covered by unit tests, not this reserved-domain corpus.",
+    "Provider-assisted performance and network inspection are excluded."
+  ],
+  "versions": {
+    "schema": "v1",
+    "rules": "structural-v1",
+    "brands": "brands-v1",
+    "suffix": "tldts@7.4.19 (bundled ICANN + private PSL)"
+  },
+  "total": 12,
+  "confusionMatrix": {
+    "truePositive": 6,
+    "falsePositive": 0,
+    "falseNegative": 0,
+    "trueNegative": 6
+  },
+  "indicatorPrecision": 1,
+  "indicatorRecall": 1,
+  "inconclusiveCount": 6,
+  "completeCoverageCount": 0,
+  "completeCoverageFraction": 0,
+  "results": [
+    {
+      "id": "https-basic",
+      "expected": "insufficient_evidence",
+      "actual": "insufficient_evidence",
+      "ruleIds": [],
+      "matchesExpected": true
+    },
+    {
+      "id": "https-path-brand",
+      "expected": "insufficient_evidence",
+      "actual": "insufficient_evidence",
+      "ruleIds": [],
+      "matchesExpected": true
+    },
+    {
+      "id": "https-subdomain",
+      "expected": "insufficient_evidence",
+      "actual": "insufficient_evidence",
+      "ruleIds": [],
+      "matchesExpected": true
+    },
+    {
+      "id": "http-basic",
+      "expected": "suspicious",
+      "actual": "suspicious",
+      "ruleIds": [
+        "URL-001"
+      ],
+      "matchesExpected": true
+    },
+    {
+      "id": "http-subdomain",
+      "expected": "suspicious",
+      "actual": "suspicious",
+      "ruleIds": [
+        "URL-001"
+      ],
+      "matchesExpected": true
+    },
+    {
+      "id": "nested-paypal",
+      "expected": "suspicious",
+      "actual": "suspicious",
+      "ruleIds": [
+        "DOM-001"
+      ],
+      "matchesExpected": true
+    },
+    {
+      "id": "nested-google",
+      "expected": "suspicious",
+      "actual": "suspicious",
+      "ruleIds": [
+        "DOM-001"
+      ],
+      "matchesExpected": true
+    },
+    {
+      "id": "nested-stripe",
+      "expected": "suspicious",
+      "actual": "suspicious",
+      "ruleIds": [
+        "DOM-001"
+      ],
+      "matchesExpected": true
+    },
+    {
+      "id": "brand-prefix-only",
+      "expected": "insufficient_evidence",
+      "actual": "insufficient_evidence",
+      "ruleIds": [],
+      "matchesExpected": true
+    },
+    {
+      "id": "idn-only",
+      "expected": "insufficient_evidence",
+      "actual": "insufficient_evidence",
+      "ruleIds": [
+        "DOM-003"
+      ],
+      "matchesExpected": true
+    },
+    {
+      "id": "ip-only",
+      "expected": "insufficient_evidence",
+      "actual": "insufficient_evidence",
+      "ruleIds": [
+        "URL-002"
+      ],
+      "matchesExpected": true
+    },
+    {
+      "id": "http-ip",
+      "expected": "suspicious",
+      "actual": "suspicious",
+      "ruleIds": [
+        "URL-001",
+        "URL-002"
+      ],
+      "matchesExpected": true
+    }
+  ]
+}

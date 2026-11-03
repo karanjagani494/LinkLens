@@ -1,0 +1,46 @@
+name: Checks
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: linklens_test
+          POSTGRES_PASSWORD: test_only_password
+          POSTGRES_DB: linklens_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U linklens_test -d linklens_test"
+          --health-interval 5s --health-timeout 3s --health-retries 12
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 3s --health-retries 12
+    env:
+      DATABASE_URL: postgresql://linklens_test:test_only_password@127.0.0.1:5432/linklens_test
+      REDIS_TEST_URL: redis://127.0.0.1:6379
+      NEXT_PUBLIC_SCAN_ADAPTER: mock
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run db:migrate
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run evaluate
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e

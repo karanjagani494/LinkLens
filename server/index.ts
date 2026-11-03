@@ -1,3 +1,4 @@
+import {JobRuntime} from './jobs/runtime';
 import {databasePool} from './db/pool';
 import {ReportStore} from './db/reports';
 import { buildApi } from './app';
@@ -16,9 +17,11 @@ for (const origin of frontendOrigins) {
 }
 const pool = databasePool();
 const store = pool ? new ReportStore(pool) : undefined;
-const app = buildApi({ frontendOrigins, store });
+const jobs=store && process.env.REDIS_URL && process.env.RATE_LIMIT_SECRET ? new JobRuntime(store,process.env.REDIS_URL,process.env.RATE_LIMIT_SECRET) : undefined;
+if(process.env.NODE_ENV==='production' && !jobs) throw Error('Production requires database, Redis and RATE_LIMIT_SECRET.');
+const app = buildApi({ frontendOrigins, store, jobs });
 let purgeTimer: ReturnType<typeof setInterval> | undefined;
-app.addHook('onClose', async () => { clearInterval(purgeTimer); await pool?.end(); });
+app.addHook('onClose', async () => { clearInterval(purgeTimer); await jobs?.close(); await pool?.end(); });
 async function start() {
   try {
     if (store) {
@@ -27,8 +30,9 @@ async function start() {
       purgeTimer = setInterval(() => { store.purge().catch(() => console.error('Expired-report cleanup failed.')); }, 3600000);
       purgeTimer.unref();
     }
+    await jobs?.start();
     await app.listen({ host: process.env.API_HOST || '127.0.0.1', port });
-    console.log(`LinkLens API foundation listening on port ${port}. Structural URL analysis is available when database storage is configured.`);
+    console.log(`LinkLens API listening on port ${port}. ${jobs ? "Queued processing enabled." : "Direct development analysis; queue not configured."}`);
   } catch {
     console.error('LinkLens API could not start. Check the configured host and port.');
     await app.close();

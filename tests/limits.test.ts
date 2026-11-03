@@ -1,0 +1,3 @@
+import {describe,expect,it,vi} from 'vitest';
+import {LocalAdmission} from '../server/jobs/admission';
+describe('local bounded admission',()=>{it('enforces active jobs, minute limit and releases idempotently',()=>{const a=new LocalAdmission();const one=a.reserve('client'),two=a.reserve('client');expect(()=>a.reserve('client')).toThrow(/limit/);one();one();two();for(let i=0;i<3;i++)a.reserve('client')();expect(()=>a.reserve('client')).toThrow(/limit/)});it('retains the daily limit across minute windows',()=>{const a=new LocalAdmission(),start=Date.now(),now=vi.spyOn(Date,'now');try{for(let i=0;i<30;i++){now.mockReturnValue(start+i*61000);a.reserve('client')()}expect(()=>a.reserve('client')).toThrow(/limit/)}finally{now.mockRestore()}})});
