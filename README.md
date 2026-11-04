@@ -62,7 +62,7 @@ LinkLens helps you inspect URL structure and distinguish observable indicators f
 | API | Fastify, explicit-origin CORS, PostgreSQL driver |
 | Database | Hosted PostgreSQL on Neon |
 | Jobs and limits | BullMQ, Redis, atomic admission counters |
-| Optional services | Google Web Risk lookup; isolated pinned-address HTTP header inspector |
+| Optional services | Google Safe Browsing lookup; isolated pinned-address HTTP header inspector |
 | Domain parsing | `tldts`, including the Public Suffix List's private section |
 | QR decoding | Bundled ZXing worker with a three-second decode limit |
 | Checks | Vitest and Playwright Chromium |
@@ -134,8 +134,8 @@ Restart Next.js after changing frontend environment variables. In demo mode, the
 | Separate API and connection-status page | ✅ |
 | Hosted PostgreSQL, report capabilities, expiry and deletion | ✅ |
 | Real URL validation, structural rules and saved reports | ✅ |
-| Redis queue, worker, rate limits and recovery | ✅ Implemented and integration-tested; hosted configuration required |
-| Consent-based Google Web Risk integration | 🟡 Adapter tested; live key and enable flag required |
+| Redis queue, worker, rate limits and recovery | Verified with hosted Redis and Neon |
+| Consent-based Google Safe Browsing integration | Live queued API and browser scans verified |
 | Isolated redirect inspection and network-safety verification | 🟡 Service tested; independent egress isolation remains a release gate |
 | Production hosting and operational release checks | ⏸ Deferred |
 
@@ -181,14 +181,14 @@ The original demo scenario journeys require mock mode. Playwright uses port 3100
 
 </details>
 
-**Last verified implementation:** 92 unit/API/provider/network checks, five Neon integration tests, five temporary-Redis/Neon queue integration tests, the real queued browser journey, TypeScript and the production build passed. A 12-case reserved-domain policy corpus also matched its expected verdicts. Hosted Redis and live Google credentials are verified separately during configuration. These results describe synthetic software checks—not measured real-world phishing detection accuracy or an external security audit.
+**Last verified implementation:** 92 unit/API/provider/network checks, six Neon integration tests, five hosted-Redis/Neon queue integration tests, the real queued browser journey, TypeScript and the production build passed. A 12-case reserved-domain policy corpus also matched its expected verdicts. Hosted Redis and live Google credentials are verified separately during configuration. These results describe synthetic software checks—not measured real-world phishing detection accuracy or an external security audit.
 
 ## 🔒 Privacy boundaries
 
 - Submitted URLs and evidence render as inert, escaped text. No target previews, favicons or target hyperlinks.
 - QR images stay in the browser; only the selected decoded URL is submitted.
 - Structural analysis makes no target requests. Google lookups require explicit consent and enablement; target inspection runs only in the separate gated network service. AI remains disabled.
-- Stored URL displays redact paths, queries and fragments. Reports require capability access and expire after 24 hours.
+- Stored URL displays redact paths, queries and fragments. Reports require capability access and expire within 24 hours (30 minutes when reputation lookup is requested).
 - Capability digests are stored server-side. Browser capabilities use session storage; explicitly copied private links carry them in the URL fragment.
 - Anyone possessing a private report link can access the report until expiry or deletion. There are no user accounts in the anonymous MVP.
 - Provider backups/history may retain data beyond application deletion. Retention must be reviewed before sensitive production use.
@@ -222,3 +222,5 @@ Read [REQUIREMENTS.md](REQUIREMENTS.md), [ARCHITECTURE.md](ARCHITECTURE.md), and
 **Check the link. Read the evidence. Verify the payment request independently.**
 
 </div>
+
+Portfolio verification: live Safe Browsing lookup, queued API scan and both browser journeys passed. Safe Browsing is used for this non-commercial portfolio. Protection is imperfect: safe sites can be flagged and new threats missed. Optional redirect inspection is disabled pending network isolation.

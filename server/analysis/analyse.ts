@@ -43,7 +43,7 @@ export function analyse(input:ScanRequest):Report{
   {name:'Domain parsing',status:domainComplete?'passed':'unavailable',reason:ip?'Canonical IP literal; registrable domain does not apply.':known?'Domain boundaries identified using the bundled public and private suffix lists.':'Suffix is unknown; domain boundaries and domain coverage are unavailable.'},
   {name:'Structural rules',status:findings.some(f=>f.severity!=='informational')?'finding':'passed',reason:'Versioned structural rules evaluated locally on the server. No target requests.'},
   {name:'Redirect inspection',status:input.inspectRedirects?'unavailable':'skipped',reason:input.inspectRedirects?'Not implemented yet. The link was not visited.':'No consent to visit the link.'},
-  {name:'Google Web Risk',status:input.checkReputation?'unavailable':'skipped',reason:input.checkReputation?'Not configured yet. No URL was sent to a provider.':'No consent to send the URL to a reputation provider.'},
+  {name:'Google Safe Browsing',status:input.checkReputation?'unavailable':'skipped',reason:input.checkReputation?'Not configured yet. No URL was sent to a provider.':'No consent to send the URL to a reputation provider.'},
   {name:'AI explanation',status:'skipped',reason:'Reviewed templates used; no AI request.'}
  ];
  const verdict=verdictFor(findings,false);const now=Date.now();

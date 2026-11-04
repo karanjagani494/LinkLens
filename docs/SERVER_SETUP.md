@@ -40,25 +40,25 @@ Admission limits are five submissions per minute, thirty per UTC day per hashed 
 
 `/status` shows database and queue connectivity. With no Redis configured, non-production mode supports direct structural analysis with in-process limits. Production mode refuses to start without Redis, PostgreSQL and a server secret. Hosting remains deferred.
 
-## 3. Google Web Risk
+## 3. Google Safe Browsing
 
 Structural scans work without Google credentials. To enable real reputation checks:
 
 1. Open Google Cloud Console and create/select a project.
-2. Enable **Web Risk API**.
-3. Under **APIs & Services → Credentials**, create an API key and restrict its API access to Web Risk.
-4. Review the Lookup API pricing and configure API quotas in Google Cloud: https://cloud.google.com/web-risk/pricing. A budget notification is not a hard spending cap.
+2. Enable **Safe Browsing API** (free, non-commercial use only).
+3. Under **APIs & Services → Credentials**, create an API key and restrict its API access to Safe Browsing.
+4. Review the non-commercial terms and configure API quotas: https://developers.google.com/safe-browsing/terms. This portfolio uses Safe Browsing, not the paid Web Risk service.
 5. Add the key and explicit enable flag to `.env.api`:
 
 ```dotenv
-GOOGLE_WEB_RISK_API_KEY=YOUR_PRIVATE_API_KEY
+GOOGLE_SAFE_BROWSING_API_KEY=YOUR_PRIVATE_API_KEY
 ENABLE_REPUTATION=true
 REPUTATION_DAILY_LIMIT=1000
 ```
 
 6. Restart the API. The frontend enables the consent checkbox after reading server capabilities.
 
-The server contacts only `https://webrisk.googleapis.com/v1/uris:search`, using an API-key header. It does not submit URLs for crawling. Each opted-in report performs at most six lookups within a shared three-second budget. No consent means no calls. Unavailable, malformed, timed-out or quota-limited responses remain explicitly unavailable; matches already observed are retained. The daily application ceiling applies in queued mode. Templates explain the structured findings; no AI key is required.
+The server contacts only `https://safebrowsing.googleapis.com/v4/threatMatches:find`, using an API-key header. It does not submit URLs for crawling. Each opted-in report performs at most six lookups within a shared three-second budget. No consent means no calls. Unavailable, malformed, timed-out or quota-limited responses remain explicitly unavailable; matches already observed are retained. The daily application ceiling applies in queued mode. Templates explain the structured findings; no AI key is required.
 
 The automated provider tests use mocked responses. They do not prove a particular Google Cloud project's credentials, restrictions or quota configuration. Live verification requires the operator-supplied key and explicit flag above.
 
@@ -118,3 +118,11 @@ npm run test:e2e -- --grep "real structural scan"
 Playwright uses port 3100 and a separate `.next-e2e` directory. Include `http://127.0.0.1:3100` in the API's `FRONTEND_ORIGINS` for these tests. Original fixture journeys require mock mode; the queue/status journeys are opt-in.
 
 The frozen reserved-domain evaluation corpus reports policy conformance, indicator confusion counts, and inconclusive coverage in `docs/evaluation/synthetic-policy.json`. It makes no real-world detection-quality claim.
+
+## Portfolio verification
+
+Hosted Neon and TLS Redis integration tests passed. A complete queued API scan of example.com also completed with a real Google Safe Browsing no-match response. Run `npx tsx --env-file=.env.api scripts/verify-live.ts` to repeat this explicit hosted-service check; temporary records are removed. No-match does not establish safety. Google can miss threats and flag safe sites. Saved reports describe scan-time observations; rescan for current information.
+
+Redirect inspection remains optional and disabled until its independent network boundary is verified. The portfolio demo works with structural rules and opted-in reputation lookup; partial coverage is shown honestly. Hosting is deferred.
+
+Reports requesting Google reputation lookup expire after 30 minutes to avoid presenting outdated threat-list information. Other reports expire within 24 hours.

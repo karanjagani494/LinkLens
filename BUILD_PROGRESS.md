@@ -8,8 +8,8 @@ Work proceeds one stage at a time. A completed stage does not imply the remainin
 | 1 | Separate API, health check and visible connection status | ✅ Done | Nothing |
 | 2 | Hosted PostgreSQL, private report capabilities, expiry and deletion | ✅ Done | Neon configured in server-side DATABASE_URL |
 | 3 | Real URL validation, domain rules and report generation | ✅ Done | Nothing |
-| 4 | Redis queue, worker, rate limits and recovery | ✅ Code and integration tests; hosted connection pending | TLS Redis URL |
-| 5 | Google Web Risk reputation checks with consent | 🟡 Adapter and mocked tests complete; live activation pending | Server-side Google key and explicit enable flag |
+| 4 | Redis queue, worker, rate limits and recovery | Done: hosted integration verified | Configured |
+| 5 | Google Safe Browsing with consent | Done: live API and browser verified | Configured; non-commercial use |
 | 6 | Isolated redirect inspection and network safety tests | 🟡 Service and deterministic tests complete; kept off pending isolation proof | Verified egress isolation |
 | 7 | Production deployment and operational checks | ⏸ Deferred by user | No hosting now |
 | Optional | AI explanations | ⬜ Not required for launch | Provider API key only if requested |
@@ -62,3 +62,9 @@ Final step-3 checks: real HTTP-mode browser journey passed (including reload, re
 Added BullMQ queue/worker, atomic Redis admission, one-time transient payload claims, queue state migration, cancellation/recovery, provider-call budgets, explicit provider flags, capability discovery in the UI, Google Web Risk adapter, isolated pinned-address header transport, expanded tests, a synthetic offline evaluation and GitHub Actions checks.
 
 Verified: five Redis/Neon integration tests, five PostgreSQL access tests, real queued browser submission/reload/export/deletion, 92 unit/API/provider/network checks, and a 12-case synthetic conformance corpus. Hosted Redis TLS connection and real Google credentials still need operator configuration. Redirect inspection stays disabled until independent egress isolation is proven. No hosting or deployment was performed. See docs/SERVER_SETUP.md for instructions and limitations.
+
+## Portfolio completion verification
+
+Safe Browsing replaces paid Web Risk. Consent labels, API response validation and Google advisory attribution are updated. All 92 unit/API/provider/network tests and all 11 hosted Redis/Neon integration tests passed. A real API submission queued in hosted Redis, completed Google Safe Browsing lookup of example.com, persisted in Neon, and was cleaned up. Redirect inspection remains optional and disabled pending independent network isolation; deployment remains deferred.
+
+Final browser checks passed for structural analysis, redacted export, Safe Browsing lookup, persisted report reload and deletion. Reputation reports expire within 30 minutes; other reports within 24 hours.

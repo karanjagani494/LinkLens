@@ -525,11 +525,10 @@ export default function LinkLens({
                       />
                       <span>
                         <strong>
-                          Send the exact link to Google Web Risk for reputation
-                          checking
+                          Check the link with Google Safe Browsing
                         </strong>
                         <small>
-                          {mockMode || capabilities.reputation ? 'Check for known threats using an external provider.' : 'Unavailable on this server. No URL is sent to Google.'}
+                          {mockMode || capabilities.reputation ? 'Sends the exact URL to Google. May miss threats or flag safe sites.' : 'Unavailable on this server. No URL is sent to Google.'}
                         </small>
                       </span>
                       <ShieldCheck size={18} />
@@ -571,7 +570,7 @@ export default function LinkLens({
                     </button>
                     <p>
                       <LockKeyhole size={12} /> No account needed. Reports
-                      expire after 24 hours.
+                      expire within 24 hours (30 minutes with reputation checks).
                     </p>
                   </div>
                 </form>
@@ -862,6 +861,7 @@ export default function LinkLens({
                               <code>{f.id}</code>
                             </div>
                             <h4>{f.observed}</h4>
+{f.id === "REP-001" && <p><a href="https://developers.google.com/safe-browsing/v4/advisory" target="_blank" rel="noreferrer">Advisory provided by Google</a>. Possible threat observed at scan time. This saved report is a historical snapshot; rescan for current information. Safe sites may be flagged and threats may be missed. <a href="https://developers.google.com/search/docs/monitor-debug/security/social-engineering" target="_blank" rel="noreferrer">About threats</a>.</p>}
                             <p>
                               <strong>Why it matters</strong>
                               {f.why}

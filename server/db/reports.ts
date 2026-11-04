@@ -15,7 +15,7 @@ export class ReportStore {
   const capability=randomBytes(32).toString('hex'),client=await this.pool.connect();
   try{
    await client.query('BEGIN');await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',[report.id]);
-   const result=await client.query('INSERT INTO scan(id,capability_digest,report,state) SELECT $1,$2,$3,$4 WHERE NOT EXISTS (SELECT 1 FROM scan_cancellation WHERE scan_id=$1) RETURNING created_at,expires_at',[report.id,digest(capability),report,report.state]);
+   const result=await client.query('INSERT INTO scan(id,capability_digest,report,state,expires_at) SELECT $1,$2,$3,$4,now()+make_interval(secs=>$5::int) WHERE NOT EXISTS (SELECT 1 FROM scan_cancellation WHERE scan_id=$1) RETURNING created_at,expires_at',[report.id,digest(capability),report,report.state,report.checks.some(c=>c.name==='Google Safe Browsing'&&c.status!=='skipped')?1800:86400]);
    if(!result.rowCount)throw Error('Report was cancelled.');
    await client.query('COMMIT');return {id:report.id,capability,expiresAt:result.rows[0].expires_at.toISOString()};
   }catch(error){await client.query('ROLLBACK');throw error}finally{client.release()}

@@ -2,23 +2,22 @@ import {redact,validateUrl} from '../../src/lib/validation';
 import type {Report,ScanRequest} from '../../src/lib/types';
 import {verdictFor} from '../../src/lib/privacy';
 import {analyse} from '../analysis/analyse';
-export const reputationEnabled=()=>process.env.ENABLE_REPUTATION==='true'&&!!process.env.GOOGLE_WEB_RISK_API_KEY;
+export const reputationEnabled=()=>process.env.ENABLE_REPUTATION==='true'&&!!process.env.GOOGLE_SAFE_BROWSING_API_KEY;
 export const inspectionEnabled=()=>process.env.ENABLE_REDIRECT_INSPECTION==='true'&&process.env.NETWORK_ISOLATION_CONFIRMED==='true'&&!!process.env.FETCH_SERVICE_TOKEN;
 type ProviderFetch=typeof fetch;
 const categories=['MALWARE','SOCIAL_ENGINEERING','UNWANTED_SOFTWARE'];
 export async function reputation(url:string,signal:AbortSignal,request:ProviderFetch=fetch):Promise<string[]>{
- const endpoint=new URL('https://webrisk.googleapis.com/v1/uris:search');
- for(const threat of categories)endpoint.searchParams.append('threatTypes',threat);
- const target=new URL(url);target.hash='';endpoint.searchParams.set('uri',target.href);
- const response=await request(endpoint,{signal,headers:{'X-Goog-Api-Key':process.env.GOOGLE_WEB_RISK_API_KEY||''},redirect:'error',cache:'no-store'});
+ const endpoint=new URL('https://safebrowsing.googleapis.com/v4/threatMatches:find');
+ const target=new URL(url);target.hash='';
+ const response=await request(endpoint,{method:'POST',signal,headers:{'Content-Type':'application/json','X-Goog-Api-Key':process.env.GOOGLE_SAFE_BROWSING_API_KEY||''},body:JSON.stringify({client:{clientId:'linklens',clientVersion:'1.0.0'},threatInfo:{threatTypes:categories,platformTypes:['ANY_PLATFORM'],threatEntryTypes:['URL'],threatEntries:[{url:target.href}]}}),redirect:'error',cache:'no-store'});
  if(!response.ok)throw Error('REPUTATION_UNAVAILABLE');
  // Bound data from a fixed provider; never log provider bodies or request URLs.
  const reader=response.body?.getReader();if(!reader)throw Error('REPUTATION_UNAVAILABLE');let text='',size=0;
  try{for(;;){const {done,value}=await reader.read();if(done)break;size+=value.length;if(size>16384)throw Error('REPUTATION_UNAVAILABLE');text+=new TextDecoder().decode(value,{stream:true})}}finally{await reader.cancel().catch(()=>{})}
  const data=JSON.parse(text);if(!data||typeof data!=='object'||Array.isArray(data))throw Error('REPUTATION_UNAVAILABLE');
  if(Object.keys(data).length===0)return [];
- if(!data.threat||!Array.isArray(data.threat.threatTypes)||data.threat.threatTypes.length===0||data.threat.threatTypes.some((c:unknown)=>typeof c!=='string'||!categories.includes(c)))throw Error('REPUTATION_UNAVAILABLE');
- return [...new Set<string>(data.threat.threatTypes)];
+ if(!Array.isArray(data.matches)||data.matches.length===0||data.matches.some((m:unknown)=>!m||typeof m!=='object'||!categories.includes((m as {threatType:string}).threatType)))throw Error('REPUTATION_UNAVAILABLE');
+ return [...new Set<string>(data.matches.map((m:{threatType:string})=>m.threatType))];
 }
 export interface Inspection { redirects:Report['redirects']; urls:string[]; status:'passed'|'blocked'|'unavailable'; reason:string }
 export async function inspect(url:string,signal:AbortSignal,request:ProviderFetch=fetch):Promise<Inspection>{
@@ -49,17 +48,17 @@ export async function completeAnalysis(input:ScanRequest,signal:AbortSignal,depe
   }catch{check.status='unavailable';check.reason='Network inspection did not complete within its limits.'}
  }
  if(input.checkReputation&&reputationEnabled()){
-  const check=find('Google Web Risk');check.status='passed';check.reason='No match returned by Google Web Risk for every observed destination. This is not a guarantee.';
+  const check=find('Google Safe Browsing');check.status='passed';check.reason='No match returned by Google Safe Browsing for every observed destination. This is not a guarantee.';
   const deadline=AbortSignal.any([signal,AbortSignal.timeout(3000)]);
-  try{for(const target of targets.slice(0,6)){const matches=await (dependencies.reputation||reputation)(target,deadline);if(matches.length){check.status='finding';check.reason='Google Web Risk returned a threat-list match.';report.findings.push({id:'REP-001',severity:'high',observed:`Google Web Risk returned ${matches.join(', ')} for ${redact(target)}.`,why:'The provider lists an observed URL under these threat categories.',limitation:'A list match is a provider observation, not proof of merchant identity or guaranteed fraud.'})}}}
-  catch{check.status='unavailable';check.reason='Google Web Risk was unavailable, timed out, or returned an invalid response. Any earlier match remains in the findings.'}
+  try{for(const target of targets.slice(0,6)){const matches=await (dependencies.reputation||reputation)(target,deadline);if(matches.length){check.status='finding';check.reason='Google Safe Browsing returned a threat-list match.';report.findings.push({id:'REP-001',severity:'high',observed:`Google Safe Browsing returned ${matches.join(', ')} for ${redact(target)}.`,why:'The provider lists an observed URL under these threat categories.',limitation:'A list match is a provider observation, not proof of merchant identity or guaranteed fraud.'})}}}
+  catch{check.status='unavailable';check.reason='Google Safe Browsing was unavailable, timed out, or returned an invalid response. Any earlier match remains in the findings.'}
  }
  report.findings=report.findings.filter((finding,index,all)=>all.findIndex(other=>other.id===finding.id&&other.observed===finding.observed)===index);
  if(report.findings.some(f=>f.id!=='REP-001'&&['high','medium'].includes(f.severity)))find('Structural rules').status='finding';
  const structural=report.checks.slice(0,2).every(c=>['passed','finding'].includes(c.status));
- const coverage=structural&&['passed','finding'].includes(find('Redirect inspection').status)&&['passed','finding'].includes(find('Google Web Risk').status);
+ const coverage=structural&&['passed','finding'].includes(find('Redirect inspection').status)&&['passed','finding'].includes(find('Google Safe Browsing').status);
  report.coverage=coverage?'complete':'partial';report.verdict=verdictFor(report.findings,coverage);
  report.explanation.summary=report.verdict==='suspicious'?'Observed indicators warrant caution. Review the evidence and verify the payment request independently.':report.verdict==='no_indicators_found'?'The available checks completed without a risk indicator. This does not establish merchant or payment legitimacy.':'Some checks were skipped or unavailable. The available evidence is insufficient for a complete assessment.';
- report.explanation.limitations=["This MVP's coverage is limited and does not verify merchants, payments or transactions.",'Only HTTP headers are inspected when explicitly requested; no page content or JavaScript is analysed.','Reputation lists can miss new threats; structural similarity can flag unrelated legitimate domains.','Findings use deterministic rules and template explanations. AI is disabled.'];
+ report.explanation.limitations=["This report's coverage is limited and does not verify merchants, payments or transactions.",'Only HTTP headers are inspected when explicitly requested; no page content or JavaScript is analysed.','Reputation lists can miss new threats; structural similarity can flag unrelated legitimate domains.','Findings use deterministic rules and template explanations. AI is disabled.'];
  return report;
 }
