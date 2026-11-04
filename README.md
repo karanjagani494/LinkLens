@@ -224,3 +224,9 @@ Read [REQUIREMENTS.md](REQUIREMENTS.md), [ARCHITECTURE.md](ARCHITECTURE.md), and
 </div>
 
 Portfolio verification: live Safe Browsing lookup, queued API scan and both browser journeys passed. Safe Browsing is used for this non-commercial portfolio. Protection is imperfect: safe sites can be flagged and new threats missed. Optional redirect inspection is disabled pending network isolation.
+
+## Current scope and future enhancements
+
+The released portfolio checks only the submitted URL: domain boundaries, structural impersonation rules and consent-based Google Safe Browsing lookup. When these checks complete with no indicators, the verdict is **No indicators found**; missing domain or reputation coverage remains **Insufficient evidence**. Neither verdict guarantees payment safety.
+
+**Future: redirect inspection.** Follow shortened links and inspect each destination using a separately isolated service with independently verified outbound network restrictions. Redirect inspection is excluded from the current UI and public API. Existing inspector code is retained for future development; keep its enable flags false.

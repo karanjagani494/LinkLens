@@ -96,3 +96,7 @@ The offline synthetic-policy manifest, deterministic unit/provider/network tests
 ## Portfolio reputation implementation
 
 The non-commercial portfolio uses Google Safe Browsing v4 threatMatches:find via POST to a fixed Google origin. The private GOOGLE_SAFE_BROWSING_API_KEY remains server-side. Lookup requires explicit user consent; responses are bounded and validated, URLs are fragment-free, and no-match never guarantees safety. Reports requesting reputation lookup expire after thirty minutes from database creation; other reports expire within twenty-four hours. Google match warnings include advisory attribution and limitations. Hosted Redis/Neon queue processing and a real Google lookup have been verified; redirect inspection remains disabled until independent egress isolation is proven. Hosting is deferred.
+
+## Accepted release scope: submitted URL only
+
+Redirect inspection is deferred. The public API rejects inspectRedirects=true and advertises redirects=false. The frontend has no redirect consent option and submits false for the retained compatibility field. Completion requires domain parsing, structural rules and Google Safe Browsing; skipped or unavailable reputation remains partial. No target site is visited. The inspector code and deterministic transport tests are retained as future development, outside the released scan path.

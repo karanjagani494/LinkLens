@@ -2,7 +2,7 @@ import {test,expect} from '@playwright/test';
 test('real structural scan saves a private redacted report in Neon',async({page})=>{
  test.skip(process.env.LINKLENS_REAL_TESTS!=='1','Requires HTTP adapter and the API with configured database.');
  const targetRequests:string[]=[];page.on('request',r=>{if(new URL(r.url()).hostname==='paypal.com.attacker.co.uk')targetRequests.push(r.url())});
- await page.goto('/');await expect(page.getByRole('checkbox').nth(0)).toBeDisabled();const health=await page.request.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/health`);const info=await health.json();if(info.capabilities.reputation)await expect(page.getByRole('checkbox').nth(1)).toBeEnabled();else await expect(page.getByRole('checkbox').nth(1)).toBeDisabled();
+ await page.goto('/');const health=await page.request.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/health`);const info=await health.json();if(info.capabilities.reputation)await expect(page.getByRole('checkbox').nth(0)).toBeEnabled();else await expect(page.getByRole('checkbox').nth(0)).toBeDisabled();
  await page.getByLabel('Payment link or website URL').fill('https://paypal.com.attacker.co.uk/SECRET?token=SENTINEL#PRIVATE');
  const accepted=page.waitForResponse(r=>r.url().endsWith('/api/scans')&&r.request().method()==='POST');
  await page.getByRole('button',{name:'Analyse link',exact:true}).click();
@@ -17,7 +17,7 @@ test('real structural scan saves a private redacted report in Neon',async({page}
 
  test('live portfolio reputation scan completes and deletes its report',async({page})=>{
  test.skip(process.env.LINKLENS_REPUTATION_TESTS!=='1','Explicit live Google and hosted-service check.');
- await page.goto('/');const checkbox=page.getByRole('checkbox').nth(1);await expect(checkbox).toBeEnabled();await checkbox.check();
+ await page.goto('/');const checkbox=page.getByRole('checkbox').nth(0);await expect(checkbox).toBeEnabled();await checkbox.check();
  await page.getByLabel('Payment link or website URL').fill('https://example.com');await page.getByRole('button',{name:'Analyse link',exact:true}).click();
  await expect(page.getByRole('heading',{name:'Analysis report',exact:true})).toBeVisible({timeout:20000});
  await expect(page.getByText('No match returned by Google Safe Browsing for every observed destination. This is not a guarantee.',{exact:true})).toBeVisible();

@@ -1,6 +1,6 @@
 import type {JobRuntime} from './jobs/runtime';
 import {LimitError,LocalAdmission} from './jobs/admission';
-import {reputationEnabled,inspectionEnabled,completeAnalysis} from './providers/analysis';
+import {reputationEnabled,completeAnalysis} from './providers/analysis';
 import {analyse,validateRequest} from './analysis/analyse';
 import type { ReportStore } from './db/reports';
 import Fastify from 'fastify';
@@ -32,7 +32,7 @@ export function buildApi(options: ApiOptions = {}) {
     status: 'ok',
     version: 'v1',
     stage: options.jobs ? 'queued-analysis' : options.store ? 'structural-analysis' : 'foundation',
-    capabilities: { scans: !!options.store, redirects: inspectionEnabled() && !!options.jobs, reputation: reputationEnabled(), ai: false },
+    capabilities: { scans: !!options.store, redirects: false, reputation: reputationEnabled(), ai: false },
   }));
 
   app.get('/api/ready', async (_request, reply) => {
@@ -48,6 +48,7 @@ export function buildApi(options: ApiOptions = {}) {
   app.post('/api/scans', async (request, reply) => {
     if (!options.store) return unavailable(request, reply);
     if (!validateRequest(request.body)) return reply.code(400).send({code:'INVALID_INPUT',message:'Provide a valid explicit HTTP(S) URL, input kind and two boolean consent options.'});
+    if (request.body.inspectRedirects) return reply.code(400).send({code:'INSPECTION_UNAVAILABLE',message:'Redirect inspection is outside the current release. Only the submitted URL is checked.'});
     if (options.jobs) {
       try { return reply.code(202).send(await options.jobs.submit(request.body,request.ip)); }
       catch(error) {

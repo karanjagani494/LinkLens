@@ -68,3 +68,5 @@ Verified: five Redis/Neon integration tests, five PostgreSQL access tests, real 
 Safe Browsing replaces paid Web Risk. Consent labels, API response validation and Google advisory attribution are updated. All 92 unit/API/provider/network tests and all 11 hosted Redis/Neon integration tests passed. A real API submission queued in hosted Redis, completed Google Safe Browsing lookup of example.com, persisted in Neon, and was cleaned up. Redirect inspection remains optional and disabled pending independent network isolation; deployment remains deferred.
 
 Final browser checks passed for structural analysis, redacted export, Safe Browsing lookup, persisted report reload and deletion. Reputation reports expire within 30 minutes; other reports within 24 hours.
+
+Redirect inspection is now a future enhancement, excluded from the released scan flow. Submitted-URL domain, structural and reputation checks define coverage. Live reports no longer display demo-only sharing instructions.

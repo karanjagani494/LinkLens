@@ -56,9 +56,10 @@ export async function completeAnalysis(input:ScanRequest,signal:AbortSignal,depe
  report.findings=report.findings.filter((finding,index,all)=>all.findIndex(other=>other.id===finding.id&&other.observed===finding.observed)===index);
  if(report.findings.some(f=>f.id!=='REP-001'&&['high','medium'].includes(f.severity)))find('Structural rules').status='finding';
  const structural=report.checks.slice(0,2).every(c=>['passed','finding'].includes(c.status));
- const coverage=structural&&['passed','finding'].includes(find('Redirect inspection').status)&&['passed','finding'].includes(find('Google Safe Browsing').status);
+ const coverage=structural&&(!input.inspectRedirects||['passed','finding'].includes(find('Redirect inspection').status))&&['passed','finding'].includes(find('Google Safe Browsing').status);
+ if(!input.inspectRedirects)report.checks=report.checks.filter(c=>c.name!=='Redirect inspection');
  report.coverage=coverage?'complete':'partial';report.verdict=verdictFor(report.findings,coverage);
  report.explanation.summary=report.verdict==='suspicious'?'Observed indicators warrant caution. Review the evidence and verify the payment request independently.':report.verdict==='no_indicators_found'?'The available checks completed without a risk indicator. This does not establish merchant or payment legitimacy.':'Some checks were skipped or unavailable. The available evidence is insufficient for a complete assessment.';
- report.explanation.limitations=["This report's coverage is limited and does not verify merchants, payments or transactions.",'Only HTTP headers are inspected when explicitly requested; no page content or JavaScript is analysed.','Reputation lists can miss new threats; structural similarity can flag unrelated legitimate domains.','Findings use deterministic rules and template explanations. AI is disabled.'];
+ report.explanation.limitations=["This report's coverage is limited and does not verify merchants, payments or transactions.",'Only the submitted URL is checked. Redirect destinations, page content and JavaScript are not inspected.','Reputation lists can miss new threats; structural similarity can flag unrelated legitimate domains.','Findings use deterministic rules and template explanations. AI is disabled.'];
  return report;
 }

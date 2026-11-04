@@ -44,7 +44,6 @@ export default function LinkLens({
   useEffect(() => setInteractive(true), []);
   const [tab, setTab] = useState<"url" | "qr">("url"),
     [url, setUrl] = useState(""),
-    [inspect, setInspect] = useState(false),
     [reputation, setReputation] = useState(false),
     [scenario, setScenario] = useState("standard");
   const [error, setError] = useState(""),
@@ -176,7 +175,7 @@ export default function LinkLens({
         {
           url,
           inputKind: tab,
-          inspectRedirects: inspect,
+          inspectRedirects: false,
           checkReputation: reputation,
         },
         controller.signal,
@@ -235,7 +234,6 @@ export default function LinkLens({
           ? "https://internal.example.test/"
           : "https://checkout.example.test/payment",
     );
-    setInspect(!["standard", "skipped"].includes(value));
     setReputation(!["standard", "skipped"].includes(value));
     setTab("url");
     setError("");
@@ -501,21 +499,7 @@ export default function LinkLens({
                     <div className="section-label">
                       OPTIONAL CHECKS <span>YOU’RE IN CONTROL</span>
                     </div>
-                    <label className="consent">
-                      <input
-                        type="checkbox"
-                        disabled={!mockMode&&!capabilities.redirects}
-                        checked={inspect}
-                        onChange={(e) => setInspect(e.target.checked)}
-                      />
-                      <span>
-                        <strong>Visit this link to inspect redirects</strong>
-                        <small>
-                          {mockMode || capabilities.redirects ? 'Observe where the link leads. Visiting may trigger activity.' : 'Unavailable on this server. This link will not be visited.'}
-                        </small>
-                      </span>
-                      <Globe size={18} />
-                    </label>
+                    <p className="field-help">Only the submitted URL is checked. Redirect destinations are not inspected.</p>
                     <label className="consent">
                       <input
                         type="checkbox"
@@ -717,7 +701,7 @@ export default function LinkLens({
                   />
                 </div>
                 <div className="checks">
-                  {report.checks.map((c, i) => (
+                  {report.checks.filter(c=>c.name!=='Redirect inspection').map((c, i) => (
                     <div className="check-row" key={c.name}>
                       <span>{c.name}</span>
                       <span className="status pending">
@@ -898,7 +882,7 @@ export default function LinkLens({
                           : "Skipped, blocked or unavailable checks limit this report."}
                       </p>
                       <div className="checks">
-                        {report.checks.map((c) => (
+                        {report.checks.filter(c=>c.name!=='Redirect inspection').map((c) => (
                           <div className="report-check" key={c.name}>
                             <div>
                               <strong>{c.name}</strong>
@@ -928,8 +912,7 @@ export default function LinkLens({
                       </button>
                       <p className="muted">
                         Anyone possessing a private link can access the report
-                        until expiry. Demo sharing works only within this
-                        browser session.
+                        until expiry. {mockMode && "Demo sharing works only within this browser session."}
                       </p>
                       <button
                         className="delete-button"
